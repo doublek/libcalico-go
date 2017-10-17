@@ -94,6 +94,7 @@ func (c Converter) NamespaceToProfile(ns *kapiv1.Namespace) (*model.KVPair, erro
 		},
 		Value: &apiv2.Profile{
 			ObjectMeta: metav1.ObjectMeta{
+				Name:              name,
 				Labels:            labels,
 				CreationTimestamp: ns.CreationTimestamp,
 				UID:               ns.UID,
@@ -291,9 +292,13 @@ func (c Converter) NetworkPolicyToPolicy(np *extensions.NetworkPolicy) (*model.K
 	return &model.KVPair{
 		Key: model.ResourceKey{
 			Name: policyName,
-			Kind: apiv2.KindGlobalNetworkPolicy,
+			Kind: apiv2.KindNetworkPolicy,
 		},
-		Value: &apiv2.GlobalNetworkPolicy{
+		Value: &apiv2.NetworkPolicy{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      policyName,
+				Namespace: np.ObjectMeta.Namespace,
+			},
 			Spec: apiv2.PolicySpec{
 				Order:        &order,
 				Selector:     c.k8sSelectorToCalico(&np.Spec.PodSelector, &np.ObjectMeta.Namespace),
@@ -501,7 +506,7 @@ func (c Converter) k8sPortToCalico(port extensions.NetworkPolicyPort) []numorstr
 	if port.Port != nil {
 		p, err := numorstring.PortFromString(port.Port.String())
 		if err != nil {
-			log.Panic("Invalid port %+v: %s", port.Port, err)
+			log.WithError(err).Panicf("Invalid port %+v", port.Port)
 		}
 		return append(portList, p)
 	}
