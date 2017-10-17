@@ -18,6 +18,7 @@ import (
 	"reflect"
 
 	"github.com/projectcalico/libcalico-go/lib/apiv2"
+	"github.com/projectcalico/libcalico-go/lib/backend/k8s/crd"
 	"github.com/projectcalico/libcalico-go/lib/backend/model"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -37,8 +38,8 @@ func NewBGPConfigClient(c *kubernetes.Clientset, r *rest.RESTClient) K8sResource
 		name:            BGPConfigCRDName,
 		resource:        BGPConfigResourceName,
 		description:     "Calico BGP Configuration",
-		k8sResourceType: reflect.TypeOf(apiv2.BGPConfiguration{}),
-		k8sListType:     reflect.TypeOf(apiv2.BGPConfigurationList{}),
+		k8sResourceType: reflect.TypeOf(crd.BGPConfiguration{}),
+		k8sListType:     reflect.TypeOf(crd.BGPConfigurationList{}),
 		converter:       BGPConfigConverter{},
 	}
 }
@@ -67,7 +68,7 @@ func (_ BGPConfigConverter) NameToKey(name string) (model.Key, error) {
 }
 
 func (c BGPConfigConverter) ToKVPair(r CustomK8sResource) (*model.KVPair, error) {
-	t := r.(*apiv2.BGPConfiguration)
+	t := r.(*crd.BGPConfiguration)
 
 	// Clear any CRD TypeMeta fields and then create a KVPair.
 	conf := apiv2.NewBGPConfiguration()
@@ -88,7 +89,7 @@ func (c BGPConfigConverter) ToKVPair(r CustomK8sResource) (*model.KVPair, error)
 func (c BGPConfigConverter) FromKVPair(kvp *model.KVPair) (CustomK8sResource, error) {
 	v := kvp.Value.(*apiv2.BGPConfiguration)
 
-	crd := apiv2.BGPConfiguration{
+	crd := crd.BGPConfiguration{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            v.ObjectMeta.Name,
 			Namespace:       v.ObjectMeta.Namespace,

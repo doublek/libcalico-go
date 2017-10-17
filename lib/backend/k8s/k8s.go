@@ -29,6 +29,7 @@ import (
 	"github.com/projectcalico/libcalico-go/lib/apiconfig"
 	"github.com/projectcalico/libcalico-go/lib/apiv2"
 	"github.com/projectcalico/libcalico-go/lib/backend/api"
+	"github.com/projectcalico/libcalico-go/lib/backend/k8s/crd"
 	"github.com/projectcalico/libcalico-go/lib/backend/k8s/resources"
 	"github.com/projectcalico/libcalico-go/lib/backend/model"
 	"github.com/projectcalico/libcalico-go/lib/errors"
@@ -246,18 +247,18 @@ func buildCRDClientV1(cfg rest.Config) (*rest.RESTClient, error) {
 		func(scheme *runtime.Scheme) error {
 			scheme.AddKnownTypes(
 				*cfg.GroupVersion,
-				&apiv2.FelixConfiguration{},
-				&apiv2.FelixConfigurationList{},
-				&apiv2.IPPool{},
-				&apiv2.IPPoolList{},
-				&apiv2.BGPPeer{},
-				&apiv2.BGPPeerList{},
-				&apiv2.BGPConfiguration{},
-				&apiv2.BGPConfigurationList{},
-				&apiv2.ClusterInformation{},
-				&apiv2.ClusterInformationList{},
-				&apiv2.GlobalNetworkPolicy{},
-				&apiv2.GlobalNetworkPolicyList{},
+				&crd.FelixConfiguration{},
+				&crd.FelixConfigurationList{},
+				&crd.IPPool{},
+				&crd.IPPoolList{},
+				&crd.BGPPeer{},
+				&crd.BGPPeerList{},
+				&crd.BGPConfiguration{},
+				&crd.BGPConfigurationList{},
+				&crd.ClusterInformation{},
+				&crd.ClusterInformationList{},
+				&crd.GlobalNetworkPolicy{},
+				&crd.GlobalNetworkPolicyList{},
 			)
 			return nil
 		})

@@ -18,6 +18,7 @@ import (
 	"reflect"
 
 	"github.com/projectcalico/libcalico-go/lib/apiv2"
+	"github.com/projectcalico/libcalico-go/lib/backend/k8s/crd"
 	"github.com/projectcalico/libcalico-go/lib/backend/model"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -37,8 +38,8 @@ func NewFelixConfigClient(c *kubernetes.Clientset, r *rest.RESTClient) K8sResour
 		name:            FelixConfigCRDName,
 		resource:        FelixConfigResourceName,
 		description:     "Calico Felix Configuration",
-		k8sResourceType: reflect.TypeOf(apiv2.FelixConfiguration{}),
-		k8sListType:     reflect.TypeOf(apiv2.FelixConfigurationList{}),
+		k8sResourceType: reflect.TypeOf(crd.FelixConfiguration{}),
+		k8sListType:     reflect.TypeOf(crd.FelixConfigurationList{}),
 		converter:       FelixConfigConverter{},
 	}
 }
@@ -67,7 +68,7 @@ func (_ FelixConfigConverter) NameToKey(name string) (model.Key, error) {
 }
 
 func (c FelixConfigConverter) ToKVPair(r CustomK8sResource) (*model.KVPair, error) {
-	t := r.(*apiv2.FelixConfiguration)
+	t := r.(*crd.FelixConfiguration)
 
 	// Clear any CRD TypeMeta fields and then create a KVPair.
 	cfg := apiv2.NewFelixConfiguration()
@@ -88,7 +89,7 @@ func (c FelixConfigConverter) ToKVPair(r CustomK8sResource) (*model.KVPair, erro
 func (c FelixConfigConverter) FromKVPair(kvp *model.KVPair) (CustomK8sResource, error) {
 	v := kvp.Value.(*apiv2.FelixConfiguration)
 
-	return &apiv2.FelixConfiguration{
+	return &crd.FelixConfiguration{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            v.ObjectMeta.Name,
 			Namespace:       v.ObjectMeta.Namespace,

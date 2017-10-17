@@ -18,6 +18,7 @@ import (
 	"reflect"
 
 	"github.com/projectcalico/libcalico-go/lib/apiv2"
+	"github.com/projectcalico/libcalico-go/lib/backend/k8s/crd"
 	"github.com/projectcalico/libcalico-go/lib/backend/model"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -37,8 +38,8 @@ func NewClusterInfoClient(c *kubernetes.Clientset, r *rest.RESTClient) K8sResour
 		name:            ClusterInfoCRDName,
 		resource:        ClusterInfoResourceName,
 		description:     "Calico Cluster Information",
-		k8sResourceType: reflect.TypeOf(apiv2.ClusterInformation{}),
-		k8sListType:     reflect.TypeOf(apiv2.ClusterInformationList{}),
+		k8sResourceType: reflect.TypeOf(crd.ClusterInformation{}),
+		k8sListType:     reflect.TypeOf(crd.ClusterInformationList{}),
 		converter:       ClusterInfoConverter{},
 	}
 }
@@ -67,7 +68,7 @@ func (_ ClusterInfoConverter) NameToKey(name string) (model.Key, error) {
 }
 
 func (c ClusterInfoConverter) ToKVPair(r CustomK8sResource) (*model.KVPair, error) {
-	t := r.(*apiv2.ClusterInformation)
+	t := r.(*crd.ClusterInformation)
 
 	// Clear any CRD TypeMeta fields and then create a KVPair.
 	info := apiv2.NewClusterInformation()
@@ -88,7 +89,7 @@ func (c ClusterInfoConverter) ToKVPair(r CustomK8sResource) (*model.KVPair, erro
 func (c ClusterInfoConverter) FromKVPair(kvp *model.KVPair) (CustomK8sResource, error) {
 	v := kvp.Value.(*apiv2.ClusterInformation)
 
-	return &apiv2.ClusterInformation{
+	return &crd.ClusterInformation{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            v.ObjectMeta.Name,
 			Namespace:       v.ObjectMeta.Namespace,

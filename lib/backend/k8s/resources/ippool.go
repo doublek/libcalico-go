@@ -18,6 +18,7 @@ import (
 	"reflect"
 
 	"github.com/projectcalico/libcalico-go/lib/apiv2"
+	"github.com/projectcalico/libcalico-go/lib/backend/k8s/crd"
 	"github.com/projectcalico/libcalico-go/lib/backend/model"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -37,8 +38,8 @@ func NewIPPoolClient(c *kubernetes.Clientset, r *rest.RESTClient) K8sResourceCli
 		name:            IPPoolCRDName,
 		resource:        IPPoolResourceName,
 		description:     "Calico IP Pools",
-		k8sResourceType: reflect.TypeOf(apiv2.IPPool{}),
-		k8sListType:     reflect.TypeOf(apiv2.IPPoolList{}),
+		k8sResourceType: reflect.TypeOf(crd.IPPool{}),
+		k8sListType:     reflect.TypeOf(crd.IPPoolList{}),
 		converter:       IPPoolConverter{},
 	}
 }
@@ -67,7 +68,7 @@ func (_ IPPoolConverter) NameToKey(name string) (model.Key, error) {
 }
 
 func (i IPPoolConverter) ToKVPair(r CustomK8sResource) (*model.KVPair, error) {
-	t := r.(*apiv2.IPPool)
+	t := r.(*crd.IPPool)
 
 	// Clear any CRD TypeMeta fields and then create a KVPair.
 	res := apiv2.NewIPPool()
@@ -89,7 +90,7 @@ func (i IPPoolConverter) ToKVPair(r CustomK8sResource) (*model.KVPair, error) {
 func (i IPPoolConverter) FromKVPair(kvp *model.KVPair) (CustomK8sResource, error) {
 	v := kvp.Value.(*apiv2.IPPool)
 
-	return &apiv2.IPPool{
+	return &crd.IPPool{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            v.ObjectMeta.Name,
 			Namespace:       v.ObjectMeta.Namespace,

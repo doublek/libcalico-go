@@ -18,6 +18,7 @@ import (
 	"reflect"
 
 	"github.com/projectcalico/libcalico-go/lib/apiv2"
+	"github.com/projectcalico/libcalico-go/lib/backend/k8s/crd"
 	"github.com/projectcalico/libcalico-go/lib/backend/model"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -37,8 +38,8 @@ func NewBGPPeerClient(c *kubernetes.Clientset, r *rest.RESTClient) K8sResourceCl
 		name:            BGPPeerCRDName,
 		resource:        BGPPeerResourceName,
 		description:     "Calico BGP Peers",
-		k8sResourceType: reflect.TypeOf(apiv2.BGPPeer{}),
-		k8sListType:     reflect.TypeOf(apiv2.BGPPeerList{}),
+		k8sResourceType: reflect.TypeOf(crd.BGPPeer{}),
+		k8sListType:     reflect.TypeOf(crd.BGPPeerList{}),
 		converter:       BGPPeerConverter{},
 	}
 }
@@ -67,7 +68,7 @@ func (_ BGPPeerConverter) NameToKey(name string) (model.Key, error) {
 }
 
 func (c BGPPeerConverter) ToKVPair(r CustomK8sResource) (*model.KVPair, error) {
-	t := r.(*apiv2.BGPPeer)
+	t := r.(*crd.BGPPeer)
 
 	// Clear any CRD TypeMeta fields and then create a KVPair.
 	res := apiv2.NewBGPPeer()
@@ -88,7 +89,7 @@ func (c BGPPeerConverter) ToKVPair(r CustomK8sResource) (*model.KVPair, error) {
 func (c BGPPeerConverter) FromKVPair(kvp *model.KVPair) (CustomK8sResource, error) {
 	v := kvp.Value.(*apiv2.BGPPeer)
 
-	return &apiv2.BGPPeer{
+	return &crd.BGPPeer{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            v.ObjectMeta.Name,
 			Namespace:       v.ObjectMeta.Namespace,

@@ -18,6 +18,7 @@ import (
 	"reflect"
 
 	"github.com/projectcalico/libcalico-go/lib/apiv2"
+	"github.com/projectcalico/libcalico-go/lib/backend/k8s/crd"
 	"github.com/projectcalico/libcalico-go/lib/backend/model"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -37,8 +38,8 @@ func NewGlobalNetworkPolicyClient(c *kubernetes.Clientset, r *rest.RESTClient) K
 		name:            GlobalNetworkPolicyCRDName,
 		resource:        GlobalNetworkPolicyResourceName,
 		description:     "Calico Global Network Policies",
-		k8sResourceType: reflect.TypeOf(apiv2.GlobalNetworkPolicy{}),
-		k8sListType:     reflect.TypeOf(apiv2.GlobalNetworkPolicyList{}),
+		k8sResourceType: reflect.TypeOf(crd.GlobalNetworkPolicy{}),
+		k8sListType:     reflect.TypeOf(crd.GlobalNetworkPolicyList{}),
 		converter:       GlobalNetworkPolicyConverter{},
 	}
 }
@@ -67,7 +68,7 @@ func (_ GlobalNetworkPolicyConverter) NameToKey(name string) (model.Key, error) 
 }
 
 func (c GlobalNetworkPolicyConverter) ToKVPair(r CustomK8sResource) (*model.KVPair, error) {
-	t := r.(*apiv2.GlobalNetworkPolicy)
+	t := r.(*crd.GlobalNetworkPolicy)
 
 	// Clear any CRD TypeMeta fields and then create a KVPair.
 	policy := apiv2.NewGlobalNetworkPolicy()
@@ -88,7 +89,7 @@ func (c GlobalNetworkPolicyConverter) ToKVPair(r CustomK8sResource) (*model.KVPa
 func (c GlobalNetworkPolicyConverter) FromKVPair(kvp *model.KVPair) (CustomK8sResource, error) {
 	v := kvp.Value.(*apiv2.GlobalNetworkPolicy)
 
-	return &apiv2.GlobalNetworkPolicy{
+	return &crd.GlobalNetworkPolicy{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            v.ObjectMeta.Name,
 			Namespace:       v.ObjectMeta.Namespace,
