@@ -27,7 +27,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	k8sapi "k8s.io/api/core/v1"
-	extensions "k8s.io/api/extensions/v1beta1"
+	netv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/watch"
@@ -40,7 +40,7 @@ type kubeAPI interface {
 	PodWatch(string, metav1.ListOptions) (watch.Interface, error)
 	PodList(string, metav1.ListOptions) (*k8sapi.PodList, error)
 	NetworkPolicyWatch(metav1.ListOptions) (watch.Interface, error)
-	NetworkPolicyList() (extensions.NetworkPolicyList, error)
+	NetworkPolicyList() (netv1.NetworkPolicyList, error)
 	FelixConfigWatch(metav1.ListOptions) (watch.Interface, error)
 	FelixConfigList(model.GlobalConfigListOptions) ([]*model.KVPair, string, error)
 	IPPoolWatch(metav1.ListOptions) (watch.Interface, error)
@@ -107,8 +107,8 @@ func (k *realKubeAPI) NamespaceList(opts metav1.ListOptions) (list *k8sapi.Names
 	return
 }
 
-func (k *realKubeAPI) NetworkPolicyList() (list extensions.NetworkPolicyList, err error) {
-	list = extensions.NetworkPolicyList{}
+func (k *realKubeAPI) NetworkPolicyList() (list netv1.NetworkPolicyList, err error) {
+	list = netv1.NetworkPolicyList{}
 	err = k.kc.clientSet.ExtensionsV1beta1().RESTClient().
 		Get().
 		Resource("networkpolicies").
@@ -678,7 +678,7 @@ func (syn *kubeSyncer) performSnapshot(versions *resourceVersions) (map[string][
 
 			versions.networkPolicyVersion = npList.ListMeta.ResourceVersion
 			for _, np := range npList.Items {
-				pol, _ := syn.converter.NetworkPolicyToPolicy(&np)
+				pol, _ := syn.converter.K8sNetworkPolicyToCalico(&np)
 				snap[KEY_NP] = append(snap[KEY_NP], *pol)
 				keys[KEY_NP][pol.Key.String()] = true
 			}
@@ -1017,13 +1017,13 @@ func (syn *kubeSyncer) parsePodEvent(e watch.Event) *model.KVPair {
 func (syn *kubeSyncer) parseNetworkPolicyEvent(e watch.Event) *model.KVPair {
 	log.Debug("Parsing NetworkPolicy watch event")
 	// First, check the event type.
-	np, ok := e.Object.(*extensions.NetworkPolicy)
+	np, ok := e.Object.(*netv1.NetworkPolicy)
 	if !ok {
 		log.Panicf("Invalid NetworkPolicy event. Type: %s, Object: %+v", e.Type, e.Object)
 	}
 
 	// Convert the received NetworkPolicy into a profile KVPair.
-	kvp, err := syn.converter.NetworkPolicyToPolicy(np)
+	kvp, err := syn.converter.K8sNetworkPolicyToCalico(np)
 	if err != nil {
 		log.Panicf("%s", err)
 	}

@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
-	"time"
 
 	log "github.com/sirupsen/logrus"
 
@@ -30,12 +29,10 @@ import (
 	"github.com/projectcalico/libcalico-go/lib/backend/model"
 	cerrors "github.com/projectcalico/libcalico-go/lib/errors"
 
-	extensions "k8s.io/api/extensions/v1beta1"
+	netv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/cache"
 )
 
 const (
@@ -130,18 +127,11 @@ func (c *networkPolicyClient) Get(ctx context.Context, key model.Key, revision s
 		}
 
 		// Get the NetworkPolicy from the API and convert it.
-		networkPolicy := extensions.NetworkPolicy{}
-		err = c.clientSet.Extensions().RESTClient().
-			Get().
-			Resource("networkpolicies").
-			Namespace(namespace).
-			Name(policyName).
-			Timeout(10 * time.Second).
-			Do().Into(&networkPolicy)
+		networkPolicy, err := c.clientSet.NetworkingV1().NetworkPolicies(namespace).Get(policyName, metav1.GetOptions{})
 		if err != nil {
 			return nil, K8sErrorToCalico(err, k)
 		}
-		return c.converter.NetworkPolicyToPolicy(&networkPolicy)
+		return c.converter.K8sNetworkPolicyToCalico(networkPolicy)
 	} else {
 		return c.crdClient.Get(ctx, k, revision)
 	}
@@ -152,16 +142,15 @@ func (c *networkPolicyClient) List(ctx context.Context, list model.ListInterface
 	l := list.(model.ResourceListOptions)
 	if l.Name != "" {
 		// Exact lookup on a NetworkPolicy.
-		kvp, err := c.Get(ctx, model.ResourceKey{Name: l.Name, Kind: l.Kind}, revision)
+		kvp, err := c.Get(ctx, model.ResourceKey{Name: l.Name, Namespace: l.Namespace, Kind: l.Kind}, revision)
 		if err != nil {
-			switch err.(type) {
 			// Return empty slice of KVPair if the object doesn't exist, return the error otherwise.
-			case cerrors.ErrorResourceDoesNotExist:
+			if _, ok := err.(cerrors.ErrorResourceDoesNotExist); ok {
 				return &model.KVPairList{
 					KVPairs:  []*model.KVPair{},
 					Revision: revision,
 				}, nil
-			default:
+			} else {
 				return nil, err
 			}
 		}
@@ -172,13 +161,8 @@ func (c *networkPolicyClient) List(ctx context.Context, list model.ListInterface
 		}, nil
 	}
 
-	// Otherwise, list all NetworkPolicy objects in all Namespaces.
-	networkPolicies := extensions.NetworkPolicyList{}
-	err := c.clientSet.Extensions().RESTClient().
-		Get().
-		Resource("networkpolicies").
-		Timeout(10 * time.Second).
-		Do().Into(&networkPolicies)
+	// Otherwise, list all NetworkPolicy objects in Namespace.
+	networkPolicies, err := c.clientSet.NetworkingV1().NetworkPolicies(l.Namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return nil, K8sErrorToCalico(err, l)
 	}
@@ -186,7 +170,7 @@ func (c *networkPolicyClient) List(ctx context.Context, list model.ListInterface
 	// For each policy, turn it into a Policy and generate the list.
 	ret := []*model.KVPair{}
 	for _, p := range networkPolicies.Items {
-		kvp, err := c.converter.NetworkPolicyToPolicy(&p)
+		kvp, err := c.converter.K8sNetworkPolicyToCalico(&p)
 		if err != nil {
 			return nil, err
 		}
@@ -218,21 +202,20 @@ func (c *networkPolicyClient) Watch(ctx context.Context, list model.ListInterfac
 		return nil, fmt.Errorf("cannot watch specific resource instance: %s", list.(model.ResourceListOptions).Name)
 	}
 
-	k8sWatchClient := cache.NewListWatchFromClient(
-		c.clientSet.ExtensionsV1beta1().RESTClient(),
-		"networkpolicies",
-		resl.Namespace,
-		fields.Everything())
-	k8sWatch, err := k8sWatchClient.WatchFunc(metav1.ListOptions{ResourceVersion: revision})
+	k8sWatch, err := c.clientSet.NetworkingV1().NetworkPolicies(resl.Namespace).Watch(metav1.ListOptions{ResourceVersion: revision})
+	if err != nil {
+		return nil, K8sErrorToCalico(err, list)
+	}
+
 	if err != nil {
 		return nil, K8sErrorToCalico(err, list)
 	}
 	converter := func(r Resource) (*model.KVPair, error) {
-		np, ok := r.(*extensions.NetworkPolicy)
+		np, ok := r.(*netv1.NetworkPolicy)
 		if !ok {
 			return nil, errors.New("NetworkPolicy conversion with incorrect k8s resource type")
 		}
-		return c.converter.NetworkPolicyToPolicy(np)
+		return c.converter.K8sNetworkPolicyToCalico(np)
 	}
 	return newK8sWatcherConverter(ctx, converter, k8sWatch), nil
 	// return c.crdClient.Watch(ctx, list, revision)
